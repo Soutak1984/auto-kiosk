@@ -4,7 +4,7 @@ set -e
 HOSTNAME="rpi-kiosk"
 USER=$(whoami)
 KIOSK_DIR="/home/$USER/kiosk"
-REPO_BANNER_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/banner.jpeg"
+REPO_BANNER_URL="https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/banner.jpeg"
 
 echo "Setting hostname..."
 sudo hostnamectl set-hostname $HOSTNAME
