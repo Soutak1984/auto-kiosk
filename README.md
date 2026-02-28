@@ -240,7 +240,7 @@ If exposing to internet:
 # 🔄 Updating the Kiosk Script
 
 cd ~  
-wget https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/kiosk-local-https.sh -O update.sh  
+wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh -O update.sh  
 chmod +x update.sh  
 ./update.sh  
 
@@ -280,4 +280,4 @@ MIT License
 # 👨‍💻 Author
 
 Your Name  
-GitHub: https://github.com/YOUR_USERNAME
+GitHub: https://github.com/Soutak1984
