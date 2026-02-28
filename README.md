@@ -73,13 +73,13 @@ Boot your Pi and open Terminal.
 
 Replace YOUR_USERNAME and YOUR_REPO:
 
-curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/kiosk-local-https.sh | bash
+curl -sSL https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh | bash
 
 ---
 
 ### Option B – Download & Inspect
 
-wget https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/kiosk-local-https.sh  
+wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh  
 chmod +x kiosk-local-https.sh  
 ./kiosk-local-https.sh  
 
