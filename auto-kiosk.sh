@@ -4,6 +4,7 @@ set -e
 HOSTNAME="rpi-kiosk"
 USER=$(whoami)
 KIOSK_DIR="/home/$USER/kiosk"
+REPO_BANNER_URL="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/banner.jpeg"
 
 echo "Setting hostname..."
 sudo hostnamectl set-hostname $HOSTNAME
@@ -13,10 +14,71 @@ sudo apt update && sudo apt upgrade -y
 
 echo "Installing required packages..."
 sudo apt install -y nginx php-fpm php-cli \
-chromium openbox lightdm unclutter openssl
+chromium openbox lightdm unclutter openssl \
+plymouth plymouth-themes imagemagick
 
-echo "Enable Desktop Auto Login..."
 sudo raspi-config nonint do_boot_behaviour B4
+
+# ----------------------------------------
+# DOWNLOAD BANNER
+# ----------------------------------------
+
+echo "Downloading banner..."
+wget -O /home/$USER/banner.jpeg $REPO_BANNER_URL || true
+
+if [ ! -f /home/$USER/banner.jpeg ]; then
+    echo "Generating default banner..."
+    convert -size 1920x1080 xc:black \
+    -fill white -gravity center \
+    -pointsize 80 \
+    -annotate 0 "RPi Kiosk" \
+    /home/$USER/banner.jpeg
+fi
+
+# ----------------------------------------
+# SET DESKTOP WALLPAPER
+# ----------------------------------------
+
+mkdir -p /home/$USER/.config/lxsession/LXDE-pi
+echo "@pcmanfm --set-wallpaper=/home/$USER/banner.jpeg" \
+>> /home/$USER/.config/lxsession/LXDE-pi/autostart
+
+# ----------------------------------------
+# BOOT CONFIG (HIDE TEXT + LOGO)
+# ----------------------------------------
+
+sudo sed -i 's/$/ quiet splash logo.nologo vt.global_cursor_default=0/' /boot/firmware/cmdline.txt || true
+echo "disable_splash=1" | sudo tee -a /boot/firmware/config.txt
+
+# ----------------------------------------
+# PLYMOUTH SPLASH THEME
+# ----------------------------------------
+
+sudo mkdir -p /usr/share/plymouth/themes/kiosk
+sudo cp /home/$USER/banner.jpeg /usr/share/plymouth/themes/kiosk/
+
+sudo bash -c 'cat > /usr/share/plymouth/themes/kiosk/kiosk.plymouth <<EOL
+[Plymouth Theme]
+Name=Kiosk
+Description=Kiosk Splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/kiosk
+ScriptFile=/usr/share/plymouth/themes/kiosk/kiosk.script
+EOL'
+
+sudo bash -c 'cat > /usr/share/plymouth/themes/kiosk/kiosk.script <<EOL
+wallpaper_image = Image("banner.jpeg");
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+sprite = Sprite(wallpaper_image);
+sprite.SetPosition((screen_width - wallpaper_image.GetWidth())/2,
+                   (screen_height - wallpaper_image.GetHeight())/2, 0);
+EOL'
+
+sudo update-alternatives --set default.plymouth /usr/share/plymouth/themes/kiosk/kiosk.plymouth
+sudo update-initramfs -u
 
 # ----------------------------------------
 # CREATE KIOSK CONFIG
@@ -32,6 +94,9 @@ echo "admin123" > $KIOSK_DIR/admin.pass
 
 cat > $KIOSK_DIR/kiosk.sh <<EOF
 #!/bin/bash
+
+until ping -c1 8.8.8.8 >/dev/null 2>&1; do sleep 2; done
+
 xset -dpms
 xset s off
 xset s noblank
@@ -61,14 +126,13 @@ EOF
 
 chmod +x $KIOSK_DIR/kiosk.sh
 
-mkdir -p /home/$USER/.config/openbox
-echo "$KIOSK_DIR/kiosk.sh &" > /home/$USER/.config/openbox/autostart
+mkdir -p /home/$USER/.config/lxsession/LXDE-pi
+echo "@/home/$USER/kiosk/kiosk.sh" >> /home/$USER/.config/lxsession/LXDE-pi/autostart
 
 # ----------------------------------------
-# CREATE SSL CERTIFICATE
+# SSL CERTIFICATE
 # ----------------------------------------
 
-echo "Creating local SSL certificate..."
 sudo mkdir -p /etc/nginx/ssl
 
 sudo openssl req -x509 -nodes -days 3650 \
@@ -76,10 +140,6 @@ sudo openssl req -x509 -nodes -days 3650 \
 -keyout /etc/nginx/ssl/kiosk.key \
 -out /etc/nginx/ssl/kiosk.crt \
 -subj "/CN=$HOSTNAME"
-
-# ----------------------------------------
-# NGINX CONFIG
-# ----------------------------------------
 
 sudo rm -f /etc/nginx/sites-enabled/default
 
@@ -106,13 +166,12 @@ server {
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php-fpm.sock;
+        fastcgi_pass unix:/run/php/php$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')-fpm.sock;
     }
 }
 EOL"
 
 sudo ln -s /etc/nginx/sites-available/kiosk /etc/nginx/sites-enabled/
-
 sudo mkdir -p /var/www/kiosk
 
 # ----------------------------------------
@@ -139,9 +198,7 @@ if(!isset($_SESSION['auth'])){
 <input type='password' name='password' placeholder='Password'/>
 <button name='login'>Login</button>
 </form>
-<?php
-exit;
-}
+<?php exit; }
 
 if(isset($_POST['save_url'])){
     file_put_contents($urlfile, $_POST['url']);
@@ -181,18 +238,11 @@ $current = trim(file_get_contents($urlfile));
 PHP"
 
 sudo chown -R www-data:www-data /var/www/kiosk
-
 sudo systemctl restart nginx php-fpm
 
 echo "Installation complete."
-echo "After reboot access admin panel at:"
-echo "https://$HOSTNAME"
-echo ""
+echo "Access admin panel at: https://$HOSTNAME"
 echo "Default password: admin123"
-echo ""
-echo "If https://$HOSTNAME does not open,"
-echo "add router DNS entry mapping $HOSTNAME to this IP:"
-hostname -I
 
 sleep 3
 sudo reboot
