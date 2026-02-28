@@ -73,13 +73,13 @@ Boot your Pi and open Terminal.
 
 Replace YOUR_USERNAME and YOUR_REPO:
 
-curl -sSL https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh | bash
+curl -sSL https://raw.githubusercontent.com/Soutak1984/auto-kiosk/main/auto-kiosk.sh | bash
 
 ---
 
 ### Option B – Download & Inspect
 
-wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh  
+wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/main/auto-kiosk.sh  
 chmod +x kiosk-local-https.sh  
 ./kiosk-local-https.sh  
 
@@ -240,7 +240,7 @@ If exposing to internet:
 # 🔄 Updating the Kiosk Script
 
 cd ~  
-wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/blob/main/kiosk-local-https.sh -O update.sh  
+wget https://raw.githubusercontent.com/Soutak1984/auto-kiosk/main/auto-kiosk.sh -O update.sh  
 chmod +x update.sh  
 ./update.sh  
 
